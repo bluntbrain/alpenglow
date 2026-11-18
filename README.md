@@ -30,7 +30,7 @@ Some of the simulations, specifically the latency simulation, requires first dow
 After that, the simulations can be run like this:
 
 ```bash
-RUST_LOG="simulations=debug" cargo run --release --bin=simulations
+RUST_LOG="simulations=debug" cargo run --release --features "cli simulations" --bin=simulations
 ```
 
 ## Development
@@ -71,17 +71,17 @@ Obviously, you can use any IP addresses here, as long as they are reachable. Onl
 
 ### Generate config files for the nodes
 
-```► cargo run --release --bin node -- --generate-config-files ip_list --config-name ag_node```
+```► cargo run --release --features cli --bin node -- --generate-config-files ip_list --config-name ag_node```
 
 will produce a config file starting with ```ag_node``` for each socket address found in ```ip_list``` file.
 
 ### Run the nodes
 You may want to use multiple terminals or a script to start the nodes:
 ``` bash
-cargo run --release --bin node -- --config-name ag_node_0.toml &
-cargo run --release --bin node -- --config-name ag_node_1.toml &
-cargo run --release --bin node -- --config-name ag_node_2.toml &
-cargo run --release --bin node -- --config-name ag_node_3.toml
+cargo run --release --features cli --bin node -- --config-name ag_node_0.toml &
+cargo run --release --features cli --bin node -- --config-name ag_node_1.toml &
+cargo run --release --features cli --bin node -- --config-name ag_node_2.toml &
+cargo run --release --features cli --bin node -- --config-name ag_node_3.toml
 ```
 
 You should be able to take one node offline and bring it back up at will without cluster stopping.

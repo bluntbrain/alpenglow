@@ -19,8 +19,8 @@ Dev tasks run through a `Justfile` (`cargo install just`; `just` lists recipes,
 ```bash
 cargo build --release                          # Build in release mode
 ./run.sh                                       # Run local cluster (alpenglow=debug)
-RUST_LOG="alpenglow=debug" cargo run --release --bin=local_cluster
-cargo run --release --bin=simulations          # Run protocol simulations
+RUST_LOG="alpenglow=debug" cargo run --release --features cli --bin=local_cluster
+cargo run --release --features "cli simulations" --bin=simulations  # Run protocol simulations
 ```
 Other binaries: `node`, `all2all_test`, `performance_test`, `workload_generator`.
 
