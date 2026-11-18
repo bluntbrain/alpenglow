@@ -155,6 +155,14 @@ pub(crate) fn run_hub_coverage_analysis() -> Result<()> {
     Ok(())
 }
 
+/// Forms hubs from the Solana mainnet stake distribution and the ping dataset.
+pub(crate) fn mainnet_hubs(delta_local_ms: f64) -> Vec<Hub> {
+    let (_, validators) = validators_from_validator_data(&VALIDATOR_DATA);
+    let (sites, servers) = sites_from_validators(&validators);
+    let delay_ms = |a: usize, b: usize| one_way_delay_ms(servers[a], servers[b]);
+    form_hubs(&sites, delay_ms, delta_local_ms)
+}
+
 /// Groups validators into sites, one per ping server.
 ///
 /// Returns the sites and the ping server of each site, in matching order.
