@@ -539,6 +539,13 @@ fn run_tests<
             .stats()
             .write_to_csv("data/output/pyjama_10.csv", &params)?;
 
+        // NewCon
+        crate::newcon::run_latency_simulation(
+            validators_with_ping_data,
+            &environment,
+            ping_rotor_sampler,
+        )?;
+
         // Alpenglow
         // latency experiments with random leaders
         // for (n, k) in SHRED_COMBINATIONS {

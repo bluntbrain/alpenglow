@@ -12,6 +12,8 @@
 //! Hubs are formed from sites. A [`Site`] is a group of validators at the same
 //! location, which are assumed to reach each other without delay.
 
+use alpenglow::ValidatorIndex;
+
 use super::parameters::NewconParameters;
 
 /// Relative tolerance when comparing a hub stake against the minimum hub stake.
@@ -24,6 +26,8 @@ pub(crate) struct Site {
     pub(crate) name: String,
     /// Stakes of the validators at this site, as fractions of the total stake.
     pub(crate) stakes: Vec<f64>,
+    /// The validators at this site, in the order of [`Self::stakes`].
+    pub(crate) validators: Vec<ValidatorIndex>,
 }
 
 impl Site {
@@ -40,13 +44,28 @@ pub(crate) struct Hub {
     pub(crate) name: String,
     /// Stakes of the members, as fractions of the total stake, in descending order.
     stakes: Vec<f64>,
+    /// The members, in the order of [`Self::stakes`].
+    validators: Vec<ValidatorIndex>,
 }
 
 impl Hub {
     /// Creates a hub from the stakes of its members.
-    pub(crate) fn new(name: String, mut stakes: Vec<f64>) -> Self {
-        stakes.sort_unstable_by(|a, b| b.total_cmp(a));
-        Self { name, stakes }
+    ///
+    /// The members are numbered from zero, in order of descending stake.
+    pub(crate) fn new(name: String, stakes: Vec<f64>) -> Self {
+        let members = (0..stakes.len() as u64).map(ValidatorIndex::new);
+        Self::from_members(name, members.zip(stakes).collect())
+    }
+
+    /// Creates a hub from its members and their stakes.
+    pub(crate) fn from_members(name: String, mut members: Vec<(ValidatorIndex, f64)>) -> Self {
+        members.sort_by(|a, b| b.1.total_cmp(&a.1));
+        let (validators, stakes) = members.into_iter().unzip();
+        Self {
+            name,
+            stakes,
+            validators,
+        }
     }
 
     /// Number of validators in this hub.
@@ -69,6 +88,11 @@ impl Hub {
         &self.stakes
     }
 
+    /// The members, in the order of [`Self::stakes`].
+    pub(crate) fn validators(&self) -> &[ValidatorIndex] {
+        &self.validators
+    }
+
     /// Splits this hub into `parts` hubs of similar size.
     ///
     /// The members are dealt out in order of descending stake, like a deck of cards.
@@ -77,6 +101,7 @@ impl Hub {
             .map(|part| Self {
                 name: format!("{}-{part}", self.name),
                 stakes: (self.stakes.iter().skip(part).step_by(parts).copied()).collect(),
+                validators: (self.validators.iter().skip(part).step_by(parts).copied()).collect(),
             })
             .collect()
     }
@@ -86,6 +111,7 @@ impl Hub {
         Self {
             name: self.name.clone(),
             stakes: self.stakes.iter().map(|stake| stake * factor).collect(),
+            validators: self.validators.clone(),
         }
     }
 
@@ -191,11 +217,17 @@ pub(crate) fn form_hubs(
                 hub_sites.push(candidate);
             }
         }
-        let stakes = hub_sites
+        let members = hub_sites
             .iter()
-            .flat_map(|&site| sites[site].stakes.iter().copied())
+            .flat_map(|&site| {
+                let site = &sites[site];
+                site.validators
+                    .iter()
+                    .copied()
+                    .zip(site.stakes.iter().copied())
+            })
             .collect();
-        hubs.push(Hub::new(sites[seed].name.clone(), stakes));
+        hubs.push(Hub::from_members(sites[seed].name.clone(), members));
     }
     hubs
 }
@@ -239,6 +271,7 @@ mod tests {
             .map(|(i, (_, stake))| Site {
                 name: format!("site{i}"),
                 stakes: vec![*stake],
+                validators: vec![ValidatorIndex::new(i as u64)],
             })
             .collect();
         let delay_ms = move |a: usize, b: usize| (positions[a] - positions[b]).abs();
@@ -352,6 +385,10 @@ mod tests {
         // every site is in exactly one hub
         let total_stake: f64 = hubs.iter().map(Hub::stake).sum();
         assert!((total_stake - 0.11).abs() < EPSILON);
+        // and the hubs remember which validators they consist of
+        let validators: Vec<u64> = hubs[0].validators().iter().map(|v| v.inner()).collect();
+        assert_eq!(validators, [0, 1, 2]);
+        assert_eq!(hubs[1].validators(), [ValidatorIndex::new(3)]);
     }
 
     #[test]
