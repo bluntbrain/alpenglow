@@ -14,6 +14,9 @@
 
 use super::parameters::NewconParameters;
 
+/// Relative tolerance when comparing a hub stake against the minimum hub stake.
+const STAKE_TOLERANCE: f64 = 1e-9;
+
 /// A group of validators at the same location.
 #[derive(Clone, Debug)]
 pub(crate) struct Site {
@@ -61,6 +64,19 @@ impl Hub {
         self.stakes.first().copied().unwrap_or(0.0)
     }
 
+    /// Stakes of the members, as fractions of the total stake, in descending order.
+    pub(crate) fn stakes(&self) -> &[f64] {
+        &self.stakes
+    }
+
+    /// Returns a copy of this hub, with the stake of every member multiplied by `factor`.
+    pub(crate) fn scaled(&self, factor: f64) -> Self {
+        Self {
+            name: self.name.clone(),
+            stakes: self.stakes.iter().map(|stake| stake * factor).collect(),
+        }
+    }
+
     /// Calculates the cap `c` on the proposer stake of a single member.
     ///
     /// A window needs `num_proposers` distinct proposers, so a member cannot
@@ -94,6 +110,16 @@ impl Hub {
             .map_or(0.0, |cap| cap * num_proposers as f64)
     }
 
+    /// Calculates the proposer stakes of the members, in the order of [`Self::stakes`].
+    ///
+    /// Returns an empty list if the hub has fewer than `num_proposers` members.
+    pub(crate) fn proposer_stakes(&self, num_proposers: usize) -> Vec<f64> {
+        self.proposer_stake_cap(num_proposers)
+            .map_or_else(Vec::new, |cap| {
+                self.stakes.iter().map(|stake| stake.min(cap)).collect()
+            })
+    }
+
     /// Counts the members that are a proposer in every window of this hub.
     ///
     /// These are the members with at least as much stake as the proposer cap.
@@ -110,8 +136,9 @@ impl Hub {
     /// `∆local`, holds by construction for hubs from [`form_hubs`].
     pub(crate) fn is_active(&self, params: &NewconParameters) -> bool {
         let min_members = params.min_hub_members.max(params.num_proposers);
-        self.num_members() >= min_members
-            && self.hub_stake(params.num_proposers) >= params.min_hub_stake
+        // stakes are floats, so leave some room for rounding errors
+        let min_hub_stake = params.min_hub_stake * (1.0 - STAKE_TOLERANCE);
+        self.num_members() >= min_members && self.hub_stake(params.num_proposers) >= min_hub_stake
     }
 }
 
@@ -216,6 +243,23 @@ mod tests {
         assert_eq!(hub.num_capped_members(3), 2);
         assert!((hub.stake() - 0.1).abs() < EPSILON);
         assert!((hub.largest_member_stake() - 0.06).abs() < EPSILON);
+    }
+
+    #[test]
+    fn proposer_stakes_are_capped() {
+        let hub = hub(&[0.06, 0.02, 0.012, 0.008]);
+        let proposer_stakes = hub.proposer_stakes(3);
+        for (proposer_stake, expected) in proposer_stakes.iter().zip([0.02, 0.02, 0.012, 0.008]) {
+            assert!((proposer_stake - expected).abs() < EPSILON);
+        }
+        // the proposer stakes add up to the hub stake
+        let sum: f64 = proposer_stakes.iter().sum();
+        assert!((sum - hub.hub_stake(3)).abs() < EPSILON);
+        // scaling the hub scales everything
+        let scaled = hub.scaled(0.5);
+        assert!((scaled.stake() - 0.05).abs() < EPSILON);
+        assert!((scaled.hub_stake(3) - 0.03).abs() < EPSILON);
+        assert_eq!(scaled.stakes().len(), 4);
     }
 
     #[test]

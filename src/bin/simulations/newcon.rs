@@ -13,13 +13,18 @@
 //! proposers of a window are always drawn from one hub: a group of validators
 //! that reach each other within a small network delay `∆local`.
 //!
-//! So far, this module only covers the hubs:
+//! So far, this module covers the hubs and the proposer schedule:
 //! - Forming hubs from a stake distribution and measured latencies.
 //! - The hub rules of the paper (proposer stake, hub stake, active hubs, hub schedule).
 //! - How much of the stake ends up in an active hub for different parameters.
+//! - Drawing the proposers of a window (the proposer schedule of the paper).
+//! - What faulty proposers can do to a window, and how often they get the chance.
 
 mod coverage;
 mod hubs;
 mod parameters;
+mod robustness;
+mod schedule;
 
 pub(crate) use self::coverage::run_hub_coverage_analysis;
+pub(crate) use self::robustness::run_window_robustness_analysis;

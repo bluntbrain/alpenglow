@@ -10,6 +10,7 @@
 //! 2. Latency (all stages of Alpenglow)
 //! 3. Rotor robustness (Rotor, 40% crash, 20% byzantine)
 //! 4. NewCon hubs (stake that ends up in an active hub)
+//! 5. NewCon robustness (windows that faulty proposers can skip or capture)
 //!
 //! For parallelization of these simulations, [`rayon`] is used in most places.
 //!
@@ -28,7 +29,8 @@
 //! - Turbine
 //!
 //! The global constants [`RUN_BANDWIDTH_TESTS`], [`RUN_LATENCY_TESTS`],
-//! [`RUN_ROTOR_ROBUSTNESS_TESTS`], and [`RUN_NEWCON_HUB_ANALYSIS`] control which tests to run.
+//! [`RUN_ROTOR_ROBUSTNESS_TESTS`], [`RUN_NEWCON_HUB_ANALYSIS`], and
+//! [`RUN_NEWCON_ROBUSTNESS_TESTS`] control which tests to run.
 //! Further, the global constants [`SAMPLING_STRATEGIES`], [`MAX_BANDWIDTHS`],
 //! and [`SHRED_COMBINATIONS`] control the parameters for some tests.
 
@@ -85,6 +87,7 @@ const RUN_BANDWIDTH_TESTS: bool = true;
 const RUN_LATENCY_TESTS: bool = true;
 const RUN_ROTOR_ROBUSTNESS_TESTS: bool = true;
 const RUN_NEWCON_HUB_ANALYSIS: bool = true;
+const RUN_NEWCON_ROBUSTNESS_TESTS: bool = true;
 const GENERATE_PLOTS: bool = true;
 
 const SAMPLING_STRATEGIES: [&str; 1] = [
@@ -129,6 +132,9 @@ fn main() -> Result<()> {
 
     if RUN_NEWCON_HUB_ANALYSIS {
         crate::newcon::run_hub_coverage_analysis()?;
+    }
+    if RUN_NEWCON_ROBUSTNESS_TESTS {
+        crate::newcon::run_window_robustness_analysis()?;
     }
 
     crate::ryse::run_robustness_tests();
