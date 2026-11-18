@@ -158,7 +158,17 @@ pub(crate) fn run_hub_coverage_analysis() -> Result<()> {
 /// Forms hubs from the Solana mainnet stake distribution and the ping dataset.
 pub(crate) fn mainnet_hubs(delta_local_ms: f64) -> Vec<Hub> {
     let (_, validators) = validators_from_validator_data(&VALIDATOR_DATA);
-    let (sites, servers) = sites_from_validators(&validators);
+    hubs_from_validators(&validators, delta_local_ms)
+}
+
+/// Forms hubs from the given validators and their ping servers.
+///
+/// The hubs refer to their members by the IDs of the given validators.
+pub(crate) fn hubs_from_validators(
+    validators: &[(ValidatorInfo, &'static PingServer)],
+    delta_local_ms: f64,
+) -> Vec<Hub> {
+    let (sites, servers) = sites_from_validators(validators);
     let delay_ms = |a: usize, b: usize| one_way_delay_ms(servers[a], servers[b]);
     form_hubs(&sites, delay_ms, delta_local_ms)
 }
@@ -177,11 +187,13 @@ fn sites_from_validators(
         let stake = validator.stake.inner() as f64 / total_stake.inner() as f64;
         if let Some(site) = servers.iter().position(|s| s.id == server.id) {
             sites[site].stakes.push(stake);
+            sites[site].validators.push(validator.id);
         } else {
             servers.push(server);
             sites.push(Site {
                 name: server.location.clone(),
                 stakes: vec![stake],
+                validators: vec![validator.id],
             });
         }
     }
