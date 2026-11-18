@@ -17,6 +17,7 @@
 //! - Forming hubs from a stake distribution and measured latencies.
 //! - The hub rules of the paper (proposer stake, hub stake, active hubs, hub schedule).
 //! - How much of the stake ends up in an active hub for different parameters.
+//! - How many windows a large hub gains by splitting into several hubs.
 //! - Drawing the proposers of a window (the proposer schedule of the paper).
 //! - What faulty proposers can do to a window, and how often they get the chance.
 
@@ -25,6 +26,8 @@ mod hubs;
 mod parameters;
 mod robustness;
 mod schedule;
+mod splitting;
 
 pub(crate) use self::coverage::run_hub_coverage_analysis;
 pub(crate) use self::robustness::run_window_robustness_analysis;
+pub(crate) use self::splitting::run_hub_splitting_analysis;
