@@ -158,12 +158,20 @@ pub fn find_closest_ping_server(lat: f64, lon: f64) -> &'static PingServer {
 /// Returns `None` if the servers are not in the dataset or ping measurements
 /// for this specific pair are not available.
 pub fn get_ping(source: usize, destination: usize) -> Option<f64> {
+    if source >= MAX_PING_SERVERS || destination >= MAX_PING_SERVERS {
+        return None;
+    }
     let index = get_index(source, destination);
     PING_DATA.get(index).copied()
 }
 
+/// Gives the position of a pair of servers in the ping data matrix.
+///
+/// Server IDs are not contiguous and can be larger than the number of servers.
+/// So the matrix has to be indexed by the largest possible ID, [`MAX_PING_SERVERS`],
+/// otherwise different pairs of servers end up at the same position.
 fn get_index(source: usize, destination: usize) -> usize {
-    source * PING_SERVERS.len() + destination
+    source * MAX_PING_SERVERS + destination
 }
 
 impl PingServer {
@@ -174,9 +182,39 @@ impl PingServer {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
     use std::f64::consts::PI;
 
     use super::*;
+
+    #[test]
+    fn server_pairs_do_not_share_measurements() {
+        // server IDs are not contiguous, some are larger than the number of servers
+        let max_id = PING_SERVERS.iter().map(|server| server.id).max().unwrap();
+        assert!(max_id >= PING_SERVERS.len());
+        assert!(max_id < MAX_PING_SERVERS);
+
+        // still, every pair of servers has its own position in the ping data
+        let mut indices = HashSet::new();
+        for source in PING_SERVERS.iter() {
+            for destination in PING_SERVERS.iter() {
+                assert!(indices.insert(get_index(source.id, destination.id)));
+            }
+        }
+
+        // so a server reaches itself faster than any other server, which used to
+        // fail e.g. for Prague, where the pings from Toronto to Tbilisi were mixed in
+        for city in ["Prague", "Dallas", "Paris", "Chicago", "Tokyo"] {
+            let (lat, lon) = coordinates_for_city(city).unwrap();
+            let server = find_closest_ping_server(lat, lon);
+            let self_ping = get_ping(server.id, server.id).unwrap();
+            assert!(self_ping < 1.0, "{city} is {self_ping} ms from itself");
+        }
+
+        // servers outside of the dataset have no ping data
+        assert_eq!(get_ping(MAX_PING_SERVERS, 0), None);
+        assert_eq!(get_ping(0, MAX_PING_SERVERS), None);
+    }
 
     #[test]
     fn basic() {
