@@ -124,9 +124,11 @@ placeholder impl lives in the same module.
 ### Simulations
 The `simulations` binary (`src/bin/simulations/`) runs discrete-event sims — latency
 (real ping data), bandwidth/throughput, and crash/Byzantine robustness — for Rotor,
-Alpenglow, Ryse, and Pyjama (one module each). Uses real validator distributions
-(Solana/Sui mainnet) and ping datasets (`data/pings-*.csv`). Configure via constants
-at the top of `src/bin/simulations/main.rs` (`RUN_*_TESTS`, `SAMPLING_STRATEGIES`,
+Alpenglow, Ryse, and Pyjama (one module each). The `newcon` module models the hubs
+of New Constellation and reports how much stake ends up in an active hub. Uses real
+validator distributions (Solana/Sui mainnet) and ping datasets (`data/pings-*.csv`).
+Configure via constants
+at the top of `src/bin/simulations/main.rs` (`RUN_*`, `SAMPLING_STRATEGIES`,
 `SHRED_COMBINATIONS`, `MAX_BANDWIDTHS`).
 
 ## Key Types and Abstractions
