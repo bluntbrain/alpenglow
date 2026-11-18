@@ -132,6 +132,7 @@ fn main() -> Result<()> {
 
     if RUN_NEWCON_HUB_ANALYSIS {
         crate::newcon::run_hub_coverage_analysis()?;
+        crate::newcon::run_hub_splitting_analysis()?;
     }
     if RUN_NEWCON_ROBUSTNESS_TESTS {
         crate::newcon::run_window_robustness_analysis()?;

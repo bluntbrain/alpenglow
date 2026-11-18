@@ -69,6 +69,18 @@ impl Hub {
         &self.stakes
     }
 
+    /// Splits this hub into `parts` hubs of similar size.
+    ///
+    /// The members are dealt out in order of descending stake, like a deck of cards.
+    pub(crate) fn split(&self, parts: usize) -> Vec<Self> {
+        (0..parts)
+            .map(|part| Self {
+                name: format!("{}-{part}", self.name),
+                stakes: (self.stakes.iter().skip(part).step_by(parts).copied()).collect(),
+            })
+            .collect()
+    }
+
     /// Returns a copy of this hub, with the stake of every member multiplied by `factor`.
     pub(crate) fn scaled(&self, factor: f64) -> Self {
         Self {
@@ -260,6 +272,18 @@ mod tests {
         assert!((scaled.stake() - 0.05).abs() < EPSILON);
         assert!((scaled.hub_stake(3) - 0.03).abs() < EPSILON);
         assert_eq!(scaled.stakes().len(), 4);
+    }
+
+    #[test]
+    fn split_deals_out_members() {
+        let hub = hub(&[0.05, 0.04, 0.03, 0.02, 0.01]);
+        let parts = hub.split(2);
+        assert_eq!(parts.len(), 2);
+        assert_eq!(parts[0].stakes(), [0.05, 0.03, 0.01]);
+        assert_eq!(parts[1].stakes(), [0.04, 0.02]);
+        assert_eq!(parts[1].name, "test-1");
+        // splitting into one part changes nothing
+        assert_eq!(hub.split(1)[0].stakes(), hub.stakes());
     }
 
     #[test]
