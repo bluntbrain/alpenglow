@@ -9,6 +9,7 @@
 //! 1. Bandwidth (Rotor, workload per node, maximum supported throughput)
 //! 2. Latency (all stages of Alpenglow)
 //! 3. Rotor robustness (Rotor, 40% crash, 20% byzantine)
+//! 4. NewCon hubs (stake that ends up in an active hub)
 //!
 //! For parallelization of these simulations, [`rayon`] is used in most places.
 //!
@@ -26,8 +27,8 @@
 //! - Decaying acceptance (with 3.0 max samples)
 //! - Turbine
 //!
-//! The global constants [`RUN_BANDWIDTH_TESTS`], [`RUN_LATENCY_TESTS`], and
-//! [`RUN_ROTOR_ROBUSTNESS_TESTS`] control which tests to run.
+//! The global constants [`RUN_BANDWIDTH_TESTS`], [`RUN_LATENCY_TESTS`],
+//! [`RUN_ROTOR_ROBUSTNESS_TESTS`], and [`RUN_NEWCON_HUB_ANALYSIS`] control which tests to run.
 //! Further, the global constants [`SAMPLING_STRATEGIES`], [`MAX_BANDWIDTHS`],
 //! and [`SHRED_COMBINATIONS`] control the parameters for some tests.
 
@@ -36,6 +37,7 @@
 mod alpenglow;
 mod binomial;
 mod discrete_event_simulator;
+mod newcon;
 mod plot;
 mod pyjama;
 mod quorum_robustness;
@@ -82,6 +84,7 @@ use crate::ryse::{
 const RUN_BANDWIDTH_TESTS: bool = true;
 const RUN_LATENCY_TESTS: bool = true;
 const RUN_ROTOR_ROBUSTNESS_TESTS: bool = true;
+const RUN_NEWCON_HUB_ANALYSIS: bool = true;
 const GENERATE_PLOTS: bool = true;
 
 const SAMPLING_STRATEGIES: [&str; 1] = [
@@ -123,6 +126,10 @@ fn main() -> Result<()> {
     Args::parse();
 
     logging::enable_logforth();
+
+    if RUN_NEWCON_HUB_ANALYSIS {
+        crate::newcon::run_hub_coverage_analysis()?;
+    }
 
     crate::ryse::run_robustness_tests();
     crate::pyjama::run_robustness_tests();
